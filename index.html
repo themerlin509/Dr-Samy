@@ -10,8 +10,8 @@
         darkMode: 'class'
       }
     </script>
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Add Babel for in-browser JSX/TSX transpilation -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script type="importmap">
 {
   "imports": {
@@ -27,6 +27,7 @@
 </head>
   <body class="bg-gray-100 dark:bg-gray-900">
     <div id="root"></div>
-    <script type="module" src="/index.tsx"></script>
+    <!-- Use Babel to transpile TSX. `data-type="module"` is important for import/export syntax -->
+    <script type="text/babel" data-type="module" data-presets="typescript,react" src="/index.tsx"></script>
   </body>
 </html>
