@@ -1,6 +1,9 @@
 import React from 'react';
-import { PlusCircle, MessageSquare, Trash2, X } from 'lucide-react';
+import { PlusCircle, MessageSquare, Trash2, X, LogOut } from 'lucide-react';
 import type { Conversation } from '../types';
+import type { User } from '@supabase/supabase-js';
+import { supabase } from '../services/supabaseClient';
+
 
 interface SidebarProps {
   conversations: Conversation[];
@@ -10,6 +13,7 @@ interface SidebarProps {
   onDeleteConversation: (id: string) => void;
   isOpen: boolean;
   onClose: () => void;
+  user: User;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -20,6 +24,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onDeleteConversation,
   isOpen,
   onClose,
+  user,
 }) => {
   const sidebarClasses = `
     w-64 bg-gray-100 dark:bg-gray-900 flex flex-col p-2 border-r border-gray-200 dark:border-gray-700
@@ -28,6 +33,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
     ${isOpen ? 'translate-x-0' : '-translate-x-full'}
     md:translate-x-0
   `;
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+  };
 
   return (
     <div className={sidebarClasses}>
@@ -81,6 +90,31 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </li>
           ))}
         </ul>
+      </div>
+
+      <div className="border-t border-gray-200 dark:border-gray-700 p-2 mt-auto">
+        <div className="flex items-center justify-between gap-2 p-1">
+          <div className="flex items-center gap-2 overflow-hidden">
+            {user.user_metadata.avatar_url && (
+                <img 
+                    src={user.user_metadata.avatar_url} 
+                    alt="User avatar" 
+                    className="w-7 h-7 rounded-full"
+                />
+            )}
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate" title={user.email}>
+                {user.user_metadata.full_name || user.email}
+            </span>
+          </div>
+          <button 
+              onClick={handleLogout} 
+              className="p-2 text-gray-500 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-red-500 dark:hover:text-red-400"
+              aria-label="Déconnexion"
+              title="Déconnexion"
+          >
+              <LogOut size={18} />
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -8,8 +8,12 @@ import type { Message, ImageFile, Conversation } from './types';
 import { getDrSamyResponse } from './services/geminiService';
 import { LoadingIndicator } from './components/LoadingIndicator';
 import { Disclaimer } from './components/Disclaimer';
+import { supabase } from './services/supabaseClient';
+import type { Session } from '@supabase/supabase-js';
+import { LoginScreen } from './components/LoginScreen';
 
 const App: React.FC = () => {
+  const [session, setSession] = useState<Session | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -17,30 +21,57 @@ const App: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // Load conversations from localStorage on initial render
   useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Load conversations from localStorage on session change
+  useEffect(() => {
+    if (!session) {
+      setConversations([]);
+      setActiveConversationId(null);
+      return;
+    }
     try {
-      const storedConversations = localStorage.getItem('dr-samy-conversations');
+      const key = `dr-samy-conversations-${session.user.id}`;
+      const storedConversations = localStorage.getItem(key);
       if (storedConversations) {
         const parsedConversations: Conversation[] = JSON.parse(storedConversations);
         setConversations(parsedConversations);
         if (parsedConversations.length > 0) {
           setActiveConversationId(parsedConversations[0].id);
+        } else {
+          setActiveConversationId(null);
         }
+      } else {
+        setConversations([]);
+        setActiveConversationId(null);
       }
     } catch (e) {
       console.error("Failed to parse conversations from localStorage", e);
       setConversations([]);
+      setActiveConversationId(null);
     }
-  }, []);
+  }, [session]);
 
   // Save conversations to localStorage whenever they change
   useEffect(() => {
+    if (!session) return;
+    const key = `dr-samy-conversations-${session.user.id}`;
     // We check for conversations length to avoid overwriting existing storage with an empty array on initial load
-    if (conversations.length > 0 || localStorage.getItem('dr-samy-conversations')) {
-        localStorage.setItem('dr-samy-conversations', JSON.stringify(conversations));
+    if (conversations.length > 0 || localStorage.getItem(key)) {
+        localStorage.setItem(key, JSON.stringify(conversations));
     }
-  }, [conversations]);
+  }, [conversations, session]);
+
 
   const scrollToBottom = () => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -172,6 +203,10 @@ const App: React.FC = () => {
   const activeConversation = conversations.find(c => c.id === activeConversationId);
   const messages = activeConversation ? activeConversation.messages : [];
   
+  if (!session) {
+    return <LoginScreen />;
+  }
+  
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-sans">
       {isSidebarOpen && (
@@ -189,6 +224,7 @@ const App: React.FC = () => {
         onDeleteConversation={deleteConversation}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
+        user={session.user}
       />
       <div className="flex flex-col flex-1">
         <Header onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />

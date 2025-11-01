@@ -9,31 +9,41 @@ if (!supabaseUrl || !supabaseKey) {
 
 /**
  * =================================================================================
- * 🔴 IMPORTANT: SUPABASE GOOGLE AUTH CONFIGURATION
+ * 🔴 ACTION REQUISE : CONFIGURATION DE L'AUTHENTIFICATION GOOGLE
  * =================================================================================
- * To enable Google Sign-In with Supabase, you MUST perform the following steps:
+ * Pour que la connexion avec Google fonctionne, vous DEVEZ suivre ces étapes.
+ * L'erreur "accounts.google.com refused to connect" est due à une mauvaise configuration ici.
  *
- * 1.  **Enable the Google Provider in Supabase:**
- *     - Go to your Supabase Project Dashboard.
- *     - Navigate to "Authentication" -> "Providers".
- *     - Find "Google" in the list and enable it.
+ * Documentation de référence : https://supabase.com/docs/guides/auth/social-login/auth-google
  *
- * 2.  **Get Google OAuth Credentials:**
- *     - Go to the Google Cloud Console: https://console.cloud.google.com/apis/credentials
- *     - Create an "OAuth 2.0 Client ID" for a "Web application".
+ * ÉTAPE 1 : Activer le fournisseur Google dans Supabase
+ * ---------------------------------------------------------------------------------
+ * 1. Allez sur votre tableau de bord Supabase : https://supabase.com/dashboard/
+ * 2. Sélectionnez votre projet.
+ * 3. Allez dans "Authentication" -> "Providers".
+ * 4. Trouvez "Google" dans la liste et activez-le. Vous y trouverez une "Redirect URL" (ou "Callback URL"). Copiez-la pour l'étape suivante.
+ *    Elle ressemblera à : `https://dqpzhpcglfbydcwgqdsu.supabase.co/auth/v1/callback`
  *
- * 3.  **Configure Credentials in Supabase:**
- *     - Copy the "Client ID" and "Client Secret" from your Google Cloud credential.
- *     - Paste them into the corresponding fields in the Supabase Google provider settings.
+ * ÉTAPE 2 : Créer et Configurer les Clés d'Identification Google OAuth
+ * ---------------------------------------------------------------------------------
+ * 1. Allez sur la Google Cloud Console : https://console.cloud.google.com/apis/credentials
+ * 2. Créez un nouvel "ID client OAuth 2.0".
+ * 3. Choisissez "Application web" comme type d'application.
+ * 4. Dans la section "Origines JavaScript autorisées" (Authorized JavaScript origins) :
+ *    - **C'EST L'ÉTAPE LA PLUS IMPORTANTE POUR CORRIGER VOTRE ERREUR.**
+ *    - Vous devez ajouter l'URL EXACTE où votre application est exécutée.
+ *    - Si vous développez en local, ajoutez `http://localhost:3000` (ou le port que vous utilisez).
+ *    - Si vous utilisez un IDE en ligne ou un service de déploiement, ajoutez l'URL de base de votre application (par ex. `https://mon-app-xxxx.web.app`).
+ * 5. Dans la section "URIs de redirection autorisés" (Authorized redirect URIs) :
+ *    - Ajoutez l'URL que vous avez copiée de Supabase à l'étape 1.
+ * 6. Cliquez sur "Créer". Une fenêtre apparaîtra avec votre "ID client" et votre "Code secret du client".
  *
- * 4.  **Configure Redirect URI in Google Cloud:**
- *     - In your Supabase Google provider settings, you will find a "Redirect URL".
- *       It will look like: `https://<your-project-ref>.supabase.co/auth/v1/callback`
- *     - Copy this URL.
- *     - In your Google Cloud credential settings, under "Authorized redirect URIs",
- *       add this exact URL.
- *
- * 5.  **Save all configurations.**
+ * ÉTAPE 3 : Configurer les clés dans Supabase
+ * ---------------------------------------------------------------------------------
+ * 1. Retournez aux paramètres du fournisseur Google dans votre tableau de bord Supabase.
+ * 2. Copiez l'"ID client" depuis la Google Cloud Console et collez-le dans le champ "Client ID" de Supabase.
+ * 3. Copiez le "Code secret du client" et collez-le dans le champ "Client Secret" de Supabase.
+ * 4. Cliquez sur "Save".
  *
  * =================================================================================
  */
