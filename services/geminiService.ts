@@ -58,9 +58,10 @@ export const getDrSamyResponse = async (
         }
         return { role: msg.role, parts };
       }),
-      safetySettings,
+      // FIX: `safetySettings` must be a property of the `config` object.
       config: {
         systemInstruction: DR_SAMY_SYSTEM_PROMPT,
+        safetySettings,
       }
     });
 

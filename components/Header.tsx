@@ -1,5 +1,7 @@
+
 import React from 'react';
 import { Menu } from 'lucide-react';
+import { ThemeToggle } from './ThemeToggle';
 
 interface HeaderProps {
   onToggleSidebar: () => void;
@@ -20,6 +22,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
           Dr Samy
         </h1>
       </div>
+      <ThemeToggle />
     </header>
   );
 };

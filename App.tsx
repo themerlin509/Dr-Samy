@@ -25,21 +25,20 @@ const App: React.FC = () => {
         const parsedConversations: Conversation[] = JSON.parse(storedConversations);
         setConversations(parsedConversations);
         if (parsedConversations.length > 0) {
-          setActiveConversationId(parsedConversations[parsedConversations.length - 1].id);
+          setActiveConversationId(parsedConversations[0].id);
         }
       }
     } catch (e) {
-      console.error("Failed to load conversations from localStorage", e);
+      console.error("Failed to parse conversations from localStorage", e);
       setConversations([]);
     }
   }, []);
 
   // Save conversations to localStorage whenever they change
   useEffect(() => {
-    if (conversations.length > 0) {
-      localStorage.setItem('dr-samy-conversations', JSON.stringify(conversations));
-    } else {
-      localStorage.removeItem('dr-samy-conversations');
+    // We check for conversations length to avoid overwriting existing storage with an empty array on initial load
+    if (conversations.length > 0 || localStorage.getItem('dr-samy-conversations')) {
+        localStorage.setItem('dr-samy-conversations', JSON.stringify(conversations));
     }
   }, [conversations]);
 
@@ -55,12 +54,13 @@ const App: React.FC = () => {
     if (!prompt.trim() && images.length === 0) return;
 
     let currentConvId = activeConversationId;
-    
-    // If there's no active conversation or the active one is empty, create a new one
-    const activeConv = conversations.find(c => c.id === currentConvId);
-    if (!currentConvId || (activeConv && activeConv.messages.length === 0 && !prompt && images.length === 0) ) {
+    let isFirstMessage = false;
+
+    // If there's no active conversation, start a new one
+    if (!currentConvId) {
         const newConversation = startNewChat();
         currentConvId = newConversation.id;
+        isFirstMessage = true;
     }
 
     setIsLoading(true);
@@ -85,57 +85,36 @@ const App: React.FC = () => {
       images: imageFiles.length > 0 ? imageFiles : undefined,
     };
     
+    // Update local state immediately for better UX
+    let updatedMessages: Message[] = [];
     setConversations(prevConvs => 
-        prevConvs.map(conv => 
-            conv.id === currentConvId 
-                ? { ...conv, messages: [...conv.messages, userMessage] } 
-                : conv
-        )
-    );
-
-    try {
-      // Use a function for setConversations to get the most recent state
-      setConversations(currentConversations => {
-        const activeConversation = currentConversations.find(c => c.id === currentConvId);
-        const history = activeConversation ? activeConversation.messages.filter(m => m.role === 'user' || m.role === 'model') : [];
-
-        getDrSamyResponse(prompt, imageFiles, history).then(responseText => {
-          const botMessage: Message = {
-            id: (Date.now() + 1).toString(),
-            role: 'model',
-            text: responseText,
-          };
-          
-          setConversations(prevConvs => prevConvs.map(conv => {
+        prevConvs.map(conv => {
             if (conv.id === currentConvId) {
-              return { ...conv, messages: [...conv.messages, botMessage] };
+                updatedMessages = [...conv.messages, userMessage];
+                return { ...conv, messages: updatedMessages };
             }
             return conv;
-          }));
-        }).catch(e => {
-            const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
-            setError(`Error: Could not get a response. ${errorMessage}`);
-            const errorBotMessage: Message = {
-                id: (Date.now() + 1).toString(),
-                role: 'model',
-                text: `Désolé, une erreur est survenue. Veuillez réessayer. (${errorMessage})`,
-            };
-            setConversations(prevConvs => prevConvs.map(conv => {
-                if (conv.id === currentConvId) {
-                return { ...conv, messages: [...conv.messages, errorBotMessage] };
-                }
-                return conv;
-            }));
-        }).finally(() => {
-            setIsLoading(false);
-        });
-        
-        return currentConversations;
-      });
+        })
+    );
+    
+    try {
+      const responseText = await getDrSamyResponse(prompt, imageFiles, updatedMessages);
+      const botMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'model',
+        text: responseText,
+      };
+      
+      setConversations(prevConvs => prevConvs.map(conv => {
+        if (conv.id === currentConvId) {
+          const finalMessages = [...conv.messages, botMessage];
+          const newTitle = isFirstMessage ? prompt.substring(0, 50) : conv.title;
+          return { ...conv, messages: finalMessages, title: newTitle };
+        }
+        return conv;
+      }));
 
     } catch (e) {
-      // This catch block might be redundant if the promise chain handles everything,
-      // but it's good for catching synchronous errors.
       const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
       setError(`Error: Could not get a response. ${errorMessage}`);
       const errorBotMessage: Message = {
@@ -145,37 +124,45 @@ const App: React.FC = () => {
       };
       setConversations(prevConvs => prevConvs.map(conv => {
         if (conv.id === currentConvId) {
+          // Revert adding user message if API fails, or keep it and add error.
+          // Let's add the error message for clarity.
           return { ...conv, messages: [...conv.messages, errorBotMessage] };
         }
         return conv;
       }));
-      setIsLoading(false);
+    } finally {
+        setIsLoading(false);
     }
   };
   
   const startNewChat = () => {
     setError(null);
-    setIsSidebarOpen(false); // Close sidebar on mobile when starting a new chat
+    setIsSidebarOpen(false); 
+    
     const newConversation: Conversation = {
         id: Date.now().toString(),
         messages: [],
+        title: 'Nouvelle Consultation',
+        created_at: new Date().toISOString(),
     };
-    setConversations(prev => [...prev, newConversation]);
+
+    setConversations(prev => [newConversation, ...prev]);
     setActiveConversationId(newConversation.id);
     return newConversation;
   };
 
   const selectConversation = (id: string) => {
     setActiveConversationId(id);
-    setIsSidebarOpen(false); // Close sidebar on mobile when selecting a chat
+    setIsSidebarOpen(false);
   };
 
   const deleteConversation = (id: string) => {
     const remainingConversations = conversations.filter(c => c.id !== id);
     setConversations(remainingConversations);
+
     if (activeConversationId === id) {
         if (remainingConversations.length > 0) {
-            setActiveConversationId(remainingConversations[remainingConversations.length - 1].id);
+            setActiveConversationId(remainingConversations[0].id);
         } else {
             setActiveConversationId(null);
         }
@@ -184,7 +171,7 @@ const App: React.FC = () => {
 
   const activeConversation = conversations.find(c => c.id === activeConversationId);
   const messages = activeConversation ? activeConversation.messages : [];
-
+  
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-sans">
       {isSidebarOpen && (

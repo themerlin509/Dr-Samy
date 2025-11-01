@@ -1,6 +1,6 @@
 
-import React, { useState, useRef } from 'react';
-import { Paperclip, Mic, Send, X, Film } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Paperclip, Mic, Send, X } from 'lucide-react';
 import type { ImageFile } from '../types';
 
 interface ChatInputProps {
@@ -8,14 +8,70 @@ interface ChatInputProps {
   isLoading: boolean;
 }
 
+// Add SpeechRecognition to the window interface for TypeScript
+declare global {
+  interface Window {
+    SpeechRecognition: any;
+    webkitSpeechRecognition: any;
+  }
+}
+
 export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading }) => {
   const [prompt, setPrompt] = useState('');
   const [images, setImages] = useState<File[]>([]);
   const [isRecording, setIsRecording] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const recognitionRef = useRef<any>(null);
+  const [isSpeechApiSupported, setIsSpeechApiSupported] = useState(true);
+  const originalPromptRef = useRef('');
+
+  useEffect(() => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      console.warn('Speech Recognition API not supported by this browser.');
+      setIsSpeechApiSupported(false);
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'fr-FR';
+
+    recognition.onresult = (event: any) => {
+      let transcript = '';
+      for (let i = 0; i < event.results.length; i++) {
+        transcript += event.results[i][0].transcript;
+      }
+      setPrompt(originalPromptRef.current + transcript);
+    };
+
+    recognition.onerror = (event: any) => {
+      console.error('Speech recognition error:', event.error);
+      if (event.error === 'not-allowed') {
+        alert("L'accès au microphone a été refusé. Veuillez l'activer dans les paramètres de votre navigateur.");
+      }
+      setIsRecording(false);
+    };
+
+    recognition.onend = () => {
+      setIsRecording(false);
+    };
+
+    recognitionRef.current = recognition;
+
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+    };
+  }, []);
 
   const handleSend = () => {
     if (isLoading || (!prompt.trim() && images.length === 0)) return;
+    if (isRecording) {
+      recognitionRef.current?.stop();
+    }
     onSendMessage(prompt, images);
     setPrompt('');
     setImages([]);
@@ -40,8 +96,19 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading }
   };
   
   const toggleRecording = () => {
-    setIsRecording(!isRecording);
-    // In a real app, you would start/stop microphone access here.
+    if (isLoading || !isSpeechApiSupported) return;
+
+    if (isRecording) {
+      recognitionRef.current?.stop();
+    } else {
+      originalPromptRef.current = prompt.trim() ? prompt.trim() + ' ' : '';
+      try {
+        recognitionRef.current?.start();
+        setIsRecording(true);
+      } catch (e) {
+        console.error("Could not start recording:", e);
+      }
+    }
   };
 
   return (
@@ -58,6 +125,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading }
               <button
                 onClick={() => removeImage(index)}
                 className="absolute -top-1 -right-1 bg-gray-700 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                aria-label={`Supprimer l'image ${file.name}`}
               >
                 <X size={14} />
               </button>
@@ -70,6 +138,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading }
           onClick={() => fileInputRef.current?.click()}
           className="p-2 text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 disabled:opacity-50"
           disabled={isLoading || images.length >= 5}
+          aria-label="Joindre des fichiers"
         >
           <Paperclip size={20} />
           <input
@@ -84,7 +153,9 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading }
         <button 
           onClick={toggleRecording}
           className={`p-2 disabled:opacity-50 ${isRecording ? 'text-red-500 animate-pulse' : 'text-gray-500 hover:text-blue-600 dark:hover:text-blue-400'}`}
-          disabled={isLoading}
+          disabled={isLoading || !isSpeechApiSupported}
+          aria-label={isRecording ? "Arrêter l'enregistrement" : "Commencer l'enregistrement"}
+          title={!isSpeechApiSupported ? "La reconnaissance vocale n'est pas supportée par ce navigateur" : (isRecording ? "Arrêter l'enregistrement" : "Commencer l'enregistrement")}
         >
           <Mic size={20} />
         </button>
@@ -97,15 +168,20 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading }
           rows={1}
           style={{ maxHeight: '100px' }}
           disabled={isLoading}
+          aria-label="Zone de saisie des symptômes"
         />
         <button
           onClick={handleSend}
           disabled={isLoading || (!prompt.trim() && images.length === 0)}
           className="p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed"
+          aria-label="Envoyer le message"
         >
           <Send size={20} />
         </button>
       </div>
+      {!isSpeechApiSupported && (
+        <p className="text-xs text-red-500 text-center mt-1">La reconnaissance vocale n'est pas supportée par votre navigateur.</p>
+      )}
     </div>
   );
 };

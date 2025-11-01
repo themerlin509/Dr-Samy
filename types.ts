@@ -1,4 +1,3 @@
-
 export interface ImageFile {
   name: string;
   base64: string;
@@ -14,5 +13,7 @@ export interface Message {
 
 export interface Conversation {
   id: string;
+  title?: string;
   messages: Message[];
+  created_at?: string;
 }

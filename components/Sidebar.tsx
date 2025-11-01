@@ -51,8 +51,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
               Aucune consultation pour le moment.
             </li>
           )}
-          {conversations.slice().reverse().map((convo) => (
-            <li key={convo.id}>
+          {conversations.map((convo) => (
+            <li key={convo.id} className="group">
               <button
                 onClick={() => onSelectConversation(convo.id)}
                 className={`w-full flex items-center justify-between gap-2 p-2 text-sm rounded-md text-left transition-colors ${
@@ -64,7 +64,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <div className="flex items-center gap-2 overflow-hidden">
                   <MessageSquare size={16} className="flex-shrink-0" />
                   <span className="truncate">
-                    {convo.messages.length > 0 ? convo.messages[0].text : 'Nouvelle discussion'}
+                    {convo.title || (convo.messages.length > 0 ? convo.messages[0].text : 'Nouvelle discussion')}
                   </span>
                 </div>
                 <button
