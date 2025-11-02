@@ -1,39 +1,14 @@
-// @ts-nocheck
-// This file is a bundle of all application source code.
-// It was consolidated to resolve module loading errors in a no-build-step deployment environment.
+// This file is a pre-compiled bundle of all application source code.
 
+import { jsx, jsxs } from "react/jsx-runtime";
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import ReactDOM from 'react-dom/client';
-import { GoogleGenAI, HarmCategory, HarmBlockThreshold, Part, GenerateContentResponse, Chat } from "@google/genai";
+import { GoogleGenAI, HarmCategory, HarmBlockThreshold } from "@google/genai";
 import { createClient } from '@supabase/supabase-js';
-import type { Session, User } from '@supabase/supabase-js';
 import { 
   Paperclip, Mic, Send, X, User as UserIcon, Bot, Menu, Shield, MessageSquare, Image as ImageIcon, 
   PlusCircle, Trash2, LogOut, Mail, ArrowLeft, Sun, Moon 
 } from 'lucide-react';
-
-// =================================================================================
-// --- From types.ts ---
-// =================================================================================
-interface ImageFile {
-  name: string;
-  base64: string;
-  type: string;
-}
-
-interface Message {
-  id: string;
-  role: 'user' | 'model';
-  text: string;
-  images?: ImageFile[];
-}
-
-interface Conversation {
-  id: string;
-  title?: string;
-  messages: Message[];
-  created_at?: string;
-}
 
 // =================================================================================
 // --- From constants.ts ---
@@ -239,17 +214,17 @@ const safetySettings = [
 ];
 
 const getDrSamyResponse = async (
-  prompt: string,
-  images: ImageFile[],
-  history: Message[]
-): Promise<string> => {
+  prompt,
+  images,
+  history
+) => {
   try {
     const chatHistory = history.slice(0, -1);
 
-    const chat: Chat = ai.chats.create({
+    const chat = ai.chats.create({
       model: 'gemini-2.5-pro',
       history: chatHistory.map(msg => {
-        const parts: Part[] = [];
+        const parts = [];
         if (msg.text) {
           parts.push({ text: msg.text });
         }
@@ -271,20 +246,20 @@ const getDrSamyResponse = async (
       }
     });
 
-    const imageParts: Part[] = images.map(image => ({
+    const imageParts = images.map(image => ({
       inlineData: {
         mimeType: image.type,
         data: image.base64,
       },
     }));
 
-    const contentParts: Part[] = [];
+    const contentParts = [];
     if (prompt) {
       contentParts.push({ text: prompt });
     }
     contentParts.push(...imageParts);
 
-    const result: GenerateContentResponse = await chat.sendMessage({ message: contentParts });
+    const result = await chat.sendMessage({ message: contentParts });
     
     return result.text;
   } catch (error) {
@@ -302,9 +277,8 @@ const getDrSamyResponse = async (
 // =================================================================================
 
 // --- From components/ThemeToggle.tsx ---
-const ThemeToggle: React.FC = () => {
-  type Theme = 'light' | 'dark';
-  const [theme, setTheme] = useState<Theme>(() => {
+const ThemeToggle = () => {
+  const [theme, setTheme] = useState(() => {
     if (typeof window === 'undefined') {
       return 'light';
     }
@@ -322,7 +296,7 @@ const ThemeToggle: React.FC = () => {
       document.documentElement.classList.remove('dark');
     }
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const handleChange = (e: MediaQueryListEvent) => {
+    const handleChange = (e) => {
       if (!localStorage.getItem('theme')) {
         setTheme(e.matches ? 'dark' : 'light');
       }
@@ -342,34 +316,23 @@ const ThemeToggle: React.FC = () => {
   };
 
   return (
-    <button
-      onClick={toggleTheme}
-      className="p-2 rounded-full text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-900"
-      aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
-    >
-      {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
-    </button>
+    jsx("button", {
+      onClick: toggleTheme,
+      className: "p-2 rounded-full text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-900",
+      "aria-label": `Switch to ${theme === 'light' ? 'dark' : 'light'} mode`,
+      children: theme === 'light' ? jsx(Moon, { size: 20 }) : jsx(Sun, { size: 20 })
+    })
   );
 };
 
 
 // --- From components/ChatInput.tsx ---
-declare global {
-  interface Window {
-    SpeechRecognition: any;
-    webkitSpeechRecognition: any;
-  }
-}
-interface ChatInputProps {
-  onSendMessage: (prompt: string, images: File[]) => void;
-  isLoading: boolean;
-}
-const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading }) => {
+const ChatInput = ({ onSendMessage, isLoading }) => {
   const [prompt, setPrompt] = useState('');
-  const [images, setImages] = useState<File[]>([]);
+  const [images, setImages] = useState([]);
   const [isRecording, setIsRecording] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const recognitionRef = useRef<any>(null);
+  const fileInputRef = useRef(null);
+  const recognitionRef = useRef(null);
   const [isSpeechApiSupported, setIsSpeechApiSupported] = useState(true);
   const originalPromptRef = useRef('');
 
@@ -384,14 +347,14 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading }) => {
     recognition.continuous = true;
     recognition.interimResults = true;
     recognition.lang = 'fr-FR';
-    recognition.onresult = (event: any) => {
+    recognition.onresult = (event) => {
       let transcript = '';
       for (let i = 0; i < event.results.length; i++) {
         transcript += event.results[i][0].transcript;
       }
       setPrompt(originalPromptRef.current + transcript);
     };
-    recognition.onerror = (event: any) => {
+    recognition.onerror = (event) => {
       console.error('Speech recognition error:', event.error);
       if (event.error === 'not-allowed') {
         alert("L'accès au microphone a été refusé. Veuillez l'activer dans les paramètres de votre navigateur.");
@@ -419,21 +382,21 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading }) => {
     setImages([]);
   };
   
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e) => {
     if (e.target.files) {
       const newFiles = Array.from(e.target.files).slice(0, 5 - images.length);
       setImages((prev) => [...prev, ...newFiles]);
     }
   };
 
-  const removeImage = (index: number) => {
+  const removeImage = (index) => {
     setImages((prev) => prev.filter((_, i) => i !== index));
   };
   
@@ -453,112 +416,110 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading }) => {
   };
 
   return (
-    <div className="flex flex-col gap-2">
-       {images.length > 0 && (
-        <div className="flex flex-wrap gap-2 p-2 border-b border-gray-200 dark:border-gray-700">
-          {images.map((file, index) => (
-            <div key={index} className="relative group">
-              <img
-                src={URL.createObjectURL(file)}
-                alt={file.name}
-                className="w-16 h-16 rounded-md object-cover"
-              />
-              <button
-                onClick={() => removeImage(index)}
-                className="absolute -top-1 -right-1 bg-gray-700 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                aria-label={`Supprimer l'image ${file.name}`}
-              >
-                <X size={14} />
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-      <div className="flex items-center gap-2">
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          className="p-2 text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 disabled:opacity-50"
-          disabled={isLoading || images.length >= 5}
-          aria-label="Joindre des fichiers"
-        >
-          <Paperclip size={20} />
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileChange}
-            multiple
-            accept="image/*"
-            className="hidden"
-          />
-        </button>
-        <button 
-          onClick={toggleRecording}
-          className={`p-2 disabled:opacity-50 ${isRecording ? 'text-red-500 animate-pulse' : 'text-gray-500 hover:text-blue-600 dark:hover:text-blue-400'}`}
-          disabled={isLoading || !isSpeechApiSupported}
-          aria-label={isRecording ? "Arrêter l'enregistrement" : "Commencer l'enregistrement"}
-          title={!isSpeechApiSupported ? "La reconnaissance vocale n'est pas supportée par ce navigateur" : (isRecording ? "Arrêter l'enregistrement" : "Commencer l'enregistrement")}
-        >
-          <Mic size={20} />
-        </button>
-        <textarea
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          onKeyPress={handleKeyPress}
-          placeholder={isRecording ? "Enregistrement en cours... Parlez maintenant." : "Décrivez vos symptômes ici..."}
-          className="flex-1 p-2 bg-gray-100 dark:bg-gray-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-          rows={1}
-          style={{ maxHeight: '100px' }}
-          disabled={isLoading}
-          aria-label="Zone de saisie des symptômes"
-        />
-        <button
-          onClick={handleSend}
-          disabled={isLoading || (!prompt.trim() && images.length === 0)}
-          className="p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed"
-          aria-label="Envoyer le message"
-        >
-          <Send size={20} />
-        </button>
-      </div>
-      {!isSpeechApiSupported && (
-        <p className="text-xs text-red-500 text-center mt-1">La reconnaissance vocale n'est pas supportée par votre navigateur.</p>
-      )}
-    </div>
+    jsxs("div", { className: "flex flex-col gap-2", children: [
+      images.length > 0 && (
+        jsx("div", { className: "flex flex-wrap gap-2 p-2 border-b border-gray-200 dark:border-gray-700", children: 
+          images.map((file, index) => (
+            jsxs("div", { className: "relative group", children: [
+              jsx("img", {
+                src: URL.createObjectURL(file),
+                alt: file.name,
+                className: "w-16 h-16 rounded-md object-cover"
+              }),
+              jsx("button", {
+                onClick: () => removeImage(index),
+                className: "absolute -top-1 -right-1 bg-gray-700 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity",
+                "aria-label": `Supprimer l'image ${file.name}`,
+                children: jsx(X, { size: 14 })
+              })
+            ]}, index)
+          ))
+        })
+      ),
+      jsxs("div", { className: "flex items-center gap-2", children: [
+        jsxs("button", {
+          onClick: () => fileInputRef.current?.click(),
+          className: "p-2 text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 disabled:opacity-50",
+          disabled: isLoading || images.length >= 5,
+          "aria-label": "Joindre des fichiers",
+          children: [
+            jsx(Paperclip, { size: 20 }),
+            jsx("input", {
+              type: "file",
+              ref: fileInputRef,
+              onChange: handleFileChange,
+              multiple: true,
+              accept: "image/*",
+              className: "hidden"
+            })
+          ]
+        }),
+        jsx("button", {
+          onClick: toggleRecording,
+          className: `p-2 disabled:opacity-50 ${isRecording ? 'text-red-500 animate-pulse' : 'text-gray-500 hover:text-blue-600 dark:hover:text-blue-400'}`,
+          disabled: isLoading || !isSpeechApiSupported,
+          "aria-label": isRecording ? "Arrêter l'enregistrement" : "Commencer l'enregistrement",
+          title: !isSpeechApiSupported ? "La reconnaissance vocale n'est pas supportée par ce navigateur" : (isRecording ? "Arrêter l'enregistrement" : "Commencer l'enregistrement"),
+          children: jsx(Mic, { size: 20 })
+        }),
+        jsx("textarea", {
+          value: prompt,
+          onChange: (e) => setPrompt(e.target.value),
+          onKeyPress: handleKeyPress,
+          placeholder: isRecording ? "Enregistrement en cours... Parlez maintenant." : "Décrivez vos symptômes ici...",
+          className: "flex-1 p-2 bg-gray-100 dark:bg-gray-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none",
+          rows: 1,
+          style: { maxHeight: '100px' },
+          disabled: isLoading,
+          "aria-label": "Zone de saisie des symptômes"
+        }),
+        jsx("button", {
+          onClick: handleSend,
+          disabled: isLoading || (!prompt.trim() && images.length === 0),
+          className: "p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed",
+          "aria-label": "Envoyer le message",
+          children: jsx(Send, { size: 20 })
+        })
+      ]}),
+      !isSpeechApiSupported && (
+        jsx("p", { className: "text-xs text-red-500 text-center mt-1", children: "La reconnaissance vocale n'est pas supportée par votre navigateur." })
+      )
+    ]})
   );
 };
 
 // --- From components/ChatMessage.tsx ---
-const SimpleMarkdown: React.FC<{ text: string }> = ({ text }) => {
+const SimpleMarkdown = ({ text }) => {
     const lines = text.split('\n');
     const elements = lines.map((line, index) => {
         if (line.startsWith('### ')) {
-            return <h3 key={index} className="text-lg font-semibold mt-4 mb-2">{line.substring(4)}</h3>;
+            return jsx("h3", { className: "text-lg font-semibold mt-4 mb-2", children: line.substring(4) }, index);
         }
         if (line.startsWith('**') && line.endsWith('**')) {
-            return <p key={index} className="font-bold my-1">{line.substring(2, line.length - 2)}</p>;
+            return jsx("p", { className: "font-bold my-1", children: line.substring(2, line.length - 2) }, index);
         }
         if (line.startsWith('* ')) {
-            return <li key={index} className="ml-5 list-disc">{line.substring(2)}</li>;
+            return jsx("li", { className: "ml-5 list-disc", children: line.substring(2) }, index);
         }
         if (line.startsWith('- ')) {
-            return <li key={index} className="ml-5 list-disc">{line.substring(2)}</li>;
+            return jsx("li", { className: "ml-5 list-disc", children: line.substring(2) }, index);
         }
-        return <p key={index} className="my-1">{line}</p>;
+        return jsx("p", { className: "my-1", children: line }, index);
     });
-    return <>{elements}</>;
+    return jsx(React.Fragment, { children: elements });
 };
 
-const EmergencyMessage: React.FC<{ text: string }> = ({ text }) => {
+const EmergencyMessage = ({ text }) => {
     const cleanedText = text.replace(/```/g, '');
     return (
-        <div className="bg-red-100 border-l-4 border-red-500 text-red-800 p-4" role="alert">
-            <div className="text-xl font-bold animate-pulse">🚨 URGENCE MÉDICALE DÉTECTÉE 🚨</div>
-            <pre className="whitespace-pre-wrap font-sans mt-2">{cleanedText.replace('🚨🚨🚨 URGENCE MÉDICALE DÉTECTÉE 🚨🚨🚨', '')}</pre>
-        </div>
+        jsxs("div", { className: "bg-red-100 border-l-4 border-red-500 text-red-800 p-4", role: "alert", children: [
+            jsx("div", { className: "text-xl font-bold animate-pulse", children: "🚨 URGENCE MÉDICALE DÉTECTÉE 🚨" }),
+            jsx("pre", { className: "whitespace-pre-wrap font-sans mt-2", children: cleanedText.replace('🚨🚨🚨 URGENCE MÉDICALE DÉTECTÉE 🚨🚨🚨', '') })
+        ]})
     );
 }
 
-const ChatMessage: React.FC<{ message: Message }> = ({ message }) => {
+const ChatMessage = ({ message }) => {
   const isUser = message.role === 'user';
   
   const urgencyStyles = useMemo(() => {
@@ -573,144 +534,120 @@ const ChatMessage: React.FC<{ message: Message }> = ({ message }) => {
 
   if (isUser) {
     return (
-      <div className="flex items-start gap-3 justify-end">
-        <div className="flex flex-col items-end max-w-xl">
-            <div className="bg-blue-600 text-white p-3 rounded-xl rounded-br-lg">
-                {message.text}
-            </div>
-            {message.images && message.images.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-2">
-                    {message.images.map((img, idx) => (
-                        <img key={idx} src={`data:${img.type};base64,${img.base64}`} alt={`user-upload-${idx}`} className="w-24 h-24 rounded-lg object-cover" />
-                    ))}
-                </div>
-            )}
-        </div>
-        <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center text-gray-600 flex-shrink-0">
-          <UserIcon size={18} />
-        </div>
-      </div>
+      jsxs("div", { className: "flex items-start gap-3 justify-end", children: [
+        jsxs("div", { className: "flex flex-col items-end max-w-xl", children: [
+            jsx("div", { className: "bg-blue-600 text-white p-3 rounded-xl rounded-br-lg", children: message.text }),
+            message.images && message.images.length > 0 && (
+                jsx("div", { className: "flex flex-wrap gap-2 mt-2", children: 
+                    message.images.map((img, idx) => (
+                        jsx("img", { src: `data:${img.type};base64,${img.base64}`, alt: `user-upload-${idx}`, className: "w-24 h-24 rounded-lg object-cover" }, idx)
+                    ))
+                })
+            )
+        ]}),
+        jsx("div", { className: "w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center text-gray-600 flex-shrink-0", children: 
+          jsx(UserIcon, { size: 18 })
+        })
+      ]})
     );
   }
 
   return (
-    <div className="flex items-start gap-3">
-      <div className="w-8 h-8 rounded-full bg-blue-200 dark:bg-blue-900 flex items-center justify-center text-blue-600 dark:text-blue-300 flex-shrink-0">
-        <Bot size={18} />
-      </div>
-      <div className={`flex-1 max-w-xl p-4 rounded-xl rounded-bl-lg border ${urgencyStyles.border} ${urgencyStyles.background}`}>
-        {message.text.includes('🚨🚨🚨 URGENCE MÉDICALE DÉTECTÉE 🚨🚨🚨') ? (
-            <EmergencyMessage text={message.text} />
+    jsxs("div", { className: "flex items-start gap-3", children: [
+      jsx("div", { className: "w-8 h-8 rounded-full bg-blue-200 dark:bg-blue-900 flex items-center justify-center text-blue-600 dark:text-blue-300 flex-shrink-0", children: 
+        jsx(Bot, { size: 18 })
+      }),
+      jsx("div", { className: `flex-1 max-w-xl p-4 rounded-xl rounded-bl-lg border ${urgencyStyles.border} ${urgencyStyles.background}`, children: 
+        message.text.includes('🚨🚨🚨 URGENCE MÉDICALE DÉTECTÉE 🚨🚨🚨') ? (
+            jsx(EmergencyMessage, { text: message.text })
         ) : (
-            <div className="prose prose-sm dark:prose-invert max-w-none">
-                <SimpleMarkdown text={message.text} />
-            </div>
-        )}
-      </div>
-    </div>
+            jsx("div", { className: "prose prose-sm dark:prose-invert max-w-none", children: 
+                jsx(SimpleMarkdown, { text: message.text })
+            })
+        )
+      })
+    ]})
   );
 };
 
 // --- From components/Header.tsx ---
-interface HeaderProps {
-  onToggleSidebar: () => void;
-}
-const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
+const Header = ({ onToggleSidebar }) => {
   return (
-    <header className="flex items-center justify-between p-4 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 shadow-sm">
-      <div className="flex items-center gap-3">
-        <button 
-          onClick={onToggleSidebar} 
-          className="md:hidden p-2 -ml-2 text-gray-600 dark:text-gray-300"
-          aria-label="Ouvrir le menu"
-        >
-          <Menu size={24} />
-        </button>
-        <h1 className="text-xl font-bold text-gray-800 dark:text-white">
-          Dr Samy
-        </h1>
-      </div>
-      <ThemeToggle />
-    </header>
+    jsx("header", { className: "flex items-center justify-between p-4 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 shadow-sm", children: 
+      jsxs("div", { className: "flex items-center gap-3", children: [
+        jsx("button", {
+          onClick: onToggleSidebar,
+          className: "md:hidden p-2 -ml-2 text-gray-600 dark:text-gray-300",
+          "aria-label": "Ouvrir le menu",
+          children: jsx(Menu, { size: 24 })
+        }),
+        jsx("h1", { className: "text-xl font-bold text-gray-800 dark:text-white", children: "Dr Samy" })
+      ]}),
+      jsx(ThemeToggle, {})
+    })
   );
 };
 
 // --- From components/WelcomeScreen.tsx ---
-const WelcomeScreen: React.FC = () => {
+const WelcomeScreen = () => {
   return (
-    <div className="text-center p-8">
-      <h2 className="text-3xl font-bold text-gray-800 dark:text-white mb-4">
-        Bienvenue sur Dr Samy
-      </h2>
-      <p className="text-gray-600 dark:text-gray-300 max-w-2xl mx-auto mb-8">
-        Votre assistant de pré-diagnostic médical. Décrivez vos symptômes par texte, audio ou image pour recevoir une évaluation préliminaire et des recommandations.
-      </p>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 max-w-4xl mx-auto">
-        <div className="bg-white dark:bg-gray-700 p-4 rounded-lg shadow-sm flex flex-col items-center">
-          <MessageSquare className="w-8 h-8 text-blue-500 mb-2" />
-          <h3 className="font-semibold">Chat Textuel</h3>
-          <p className="text-xs text-gray-500 dark:text-gray-400">Décrivez vos symptômes.</p>
-        </div>
-        <div className="bg-white dark:bg-gray-700 p-4 rounded-lg shadow-sm flex flex-col items-center">
-          <Mic className="w-8 h-8 text-green-500 mb-2" />
-          <h3 className="font-semibold">Analyse Audio</h3>
-          <p className="text-xs text-gray-500 dark:text-gray-400">Enregistrez vos symptômes.</p>
-        </div>
-        <div className="bg-white dark:bg-gray-700 p-4 rounded-lg shadow-sm flex flex-col items-center">
-          <ImageIcon className="w-8 h-8 text-purple-500 mb-2" />
-          <h3 className="font-semibold">Analyse d'Image</h3>
-          <p className="text-xs text-gray-500 dark:text-gray-400">Envoyez des photos.</p>
-        </div>
-        <div className="bg-white dark:bg-gray-700 p-4 rounded-lg shadow-sm flex flex-col items-center">
-          <Shield className="w-8 h-8 text-red-500 mb-2" />
-          <h3 className="font-semibold">Sécurité</h3>
-          <p className="text-xs text-gray-500 dark:text-gray-400">Détection des urgences.</p>
-        </div>
-      </div>
-    </div>
+    jsxs("div", { className: "text-center p-8", children: [
+      jsx("h2", { className: "text-3xl font-bold text-gray-800 dark:text-white mb-4", children: "Bienvenue sur Dr Samy" }),
+      jsx("p", { className: "text-gray-600 dark:text-gray-300 max-w-2xl mx-auto mb-8", children: "Votre assistant de pré-diagnostic médical. Décrivez vos symptômes par texte, audio ou image pour recevoir une évaluation préliminaire et des recommandations." }),
+      jsxs("div", { className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 max-w-4xl mx-auto", children: [
+        jsxs("div", { className: "bg-white dark:bg-gray-700 p-4 rounded-lg shadow-sm flex flex-col items-center", children: [
+          jsx(MessageSquare, { className: "w-8 h-8 text-blue-500 mb-2" }),
+          jsx("h3", { className: "font-semibold", children: "Chat Textuel" }),
+          jsx("p", { className: "text-xs text-gray-500 dark:text-gray-400", children: "Décrivez vos symptômes." })
+        ]}),
+        jsxs("div", { className: "bg-white dark:bg-gray-700 p-4 rounded-lg shadow-sm flex flex-col items-center", children: [
+          jsx(Mic, { className: "w-8 h-8 text-green-500 mb-2" }),
+          jsx("h3", { className: "font-semibold", children: "Analyse Audio" }),
+          jsx("p", { className: "text-xs text-gray-500 dark:text-gray-400", children: "Enregistrez vos symptômes." })
+        ]}),
+        jsxs("div", { className: "bg-white dark:bg-gray-700 p-4 rounded-lg shadow-sm flex flex-col items-center", children: [
+          jsx(ImageIcon, { className: "w-8 h-8 text-purple-500 mb-2" }),
+          jsx("h3", { className: "font-semibold", children: "Analyse d'Image" }),
+          jsx("p", { className: "text-xs text-gray-500 dark:text-gray-400", children: "Envoyez des photos." })
+        ]}),
+        jsxs("div", { className: "bg-white dark:bg-gray-700 p-4 rounded-lg shadow-sm flex flex-col items-center", children: [
+          jsx(Shield, { className: "w-8 h-8 text-red-500 mb-2" }),
+          jsx("h3", { className: "font-semibold", children: "Sécurité" }),
+          jsx("p", { className: "text-xs text-gray-500 dark:text-gray-400", children: "Détection des urgences." })
+        ]})
+      ]})
+    ]})
   );
 };
 
 // --- From components/LoadingIndicator.tsx ---
-const LoadingIndicator: React.FC = () => {
+const LoadingIndicator = () => {
   return (
-    <div className="flex items-start gap-3">
-      <div className="w-8 h-8 rounded-full bg-blue-200 dark:bg-blue-900 flex items-center justify-center text-blue-600 dark:text-blue-300 flex-shrink-0">
-        <Bot size={18} />
-      </div>
-      <div className="flex-1 max-w-xl p-4 rounded-xl rounded-bl-lg bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
-        <div className="flex items-center space-x-2">
-          <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" style={{ animationDelay: '0s' }}></div>
-          <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
-          <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
-          <span className="text-sm text-gray-600 dark:text-gray-300">Dr Samy analyse vos symptômes...</span>
-        </div>
-      </div>
-    </div>
+    jsxs("div", { className: "flex items-start gap-3", children: [
+      jsx("div", { className: "w-8 h-8 rounded-full bg-blue-200 dark:bg-blue-900 flex items-center justify-center text-blue-600 dark:text-blue-300 flex-shrink-0", children: 
+        jsx(Bot, { size: 18 })
+      }),
+      jsx("div", { className: "flex-1 max-w-xl p-4 rounded-xl rounded-bl-lg bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600", children: 
+        jsxs("div", { className: "flex items-center space-x-2", children: [
+          jsx("div", { className: "w-2 h-2 bg-blue-500 rounded-full animate-pulse", style: { animationDelay: '0s' } }),
+          jsx("div", { className: "w-2 h-2 bg-blue-500 rounded-full animate-pulse", style: { animationDelay: '0.2s' } }),
+          jsx("div", { className: "w-2 h-2 bg-blue-500 rounded-full animate-pulse", style: { animationDelay: '0.4s' } }),
+          jsx("span", { className: "text-sm text-gray-600 dark:text-gray-300", children: "Dr Samy analyse vos symptômes..." })
+        ]})
+      })
+    ]})
   );
 };
 
 // --- From components/Disclaimer.tsx ---
-const Disclaimer: React.FC = () => {
+const Disclaimer = () => {
   return (
-    <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-3">
-      ⚠️ Avertissement: Dr Samy fournit une évaluation préliminaire et ne remplace pas une consultation médicale. Consultez un professionnel de santé pour un diagnostic précis.
-    </p>
+    jsx("p", { className: "text-xs text-gray-500 dark:text-gray-400 text-center mt-3", children: "⚠️ Avertissement: Dr Samy fournit une évaluation préliminaire et ne remplace pas une consultation médicale. Consultez un professionnel de santé pour un diagnostic précis." })
   );
 };
 
 // --- From components/Sidebar.tsx ---
-interface SidebarProps {
-  conversations: Conversation[];
-  activeConversationId: string | null;
-  onNewChat: () => void;
-  onSelectConversation: (id: string) => void;
-  onDeleteConversation: (id: string) => void;
-  isOpen: boolean;
-  onClose: () => void;
-  user: User;
-}
-const Sidebar: React.FC<SidebarProps> = ({
+const Sidebar = ({
   conversations,
   activeConversationId,
   onNewChat,
@@ -733,96 +670,94 @@ const Sidebar: React.FC<SidebarProps> = ({
   };
 
   return (
-    <div className={sidebarClasses}>
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-lg font-semibold px-2 text-gray-800 dark:text-gray-100">Consultations</h2>
-        <button onClick={onClose} className="md:hidden p-1 text-gray-500 hover:text-gray-800 dark:hover:text-gray-200">
-            <X size={20} />
-        </button>
-      </div>
-      <button
-        onClick={onNewChat}
-        className="flex items-center justify-center gap-2 w-full px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 transition-colors mb-4"
-      >
-        <PlusCircle size={16} />
-        Nouvelle Consultation
-      </button>
-      <div className="flex-1 overflow-y-auto">
-        <ul className="space-y-1">
-          {conversations.length === 0 && (
-            <li className="text-center text-xs text-gray-500 dark:text-gray-400 p-4">
-              Aucune consultation pour le moment.
-            </li>
-          )}
-          {conversations.map((convo) => (
-            <li key={convo.id} className="group">
-              <button
-                onClick={() => onSelectConversation(convo.id)}
-                className={`w-full flex items-center justify-between gap-2 p-2 text-sm rounded-md text-left transition-colors ${
+    jsxs("div", { className: sidebarClasses, children: [
+      jsxs("div", { className: "flex justify-between items-center mb-4", children: [
+        jsx("h2", { className: "text-lg font-semibold px-2 text-gray-800 dark:text-gray-100", children: "Consultations" }),
+        jsx("button", { onClick: onClose, className: "md:hidden p-1 text-gray-500 hover:text-gray-800 dark:hover:text-gray-200", children: 
+            jsx(X, { size: 20 })
+        })
+      ]}),
+      jsxs("button", {
+        onClick: onNewChat,
+        className: "flex items-center justify-center gap-2 w-full px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 transition-colors mb-4",
+        children: [
+          jsx(PlusCircle, { size: 16 }),
+          "Nouvelle Consultation"
+        ]
+      }),
+      jsx("div", { className: "flex-1 overflow-y-auto", children: 
+        jsx("ul", { className: "space-y-1", children: [
+          conversations.length === 0 && (
+            jsx("li", { className: "text-center text-xs text-gray-500 dark:text-gray-400 p-4", children: "Aucune consultation pour le moment." })
+          ),
+          conversations.map((convo) => (
+            jsx("li", { className: "group", children: 
+              jsxs("button", {
+                onClick: () => onSelectConversation(convo.id),
+                className: `w-full flex items-center justify-between gap-2 p-2 text-sm rounded-md text-left transition-colors ${
                   convo.id === activeConversationId
                     ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-200'
                     : 'text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-                }`}
-              >
-                <div className="flex items-center gap-2 overflow-hidden">
-                  <MessageSquare size={16} className="flex-shrink-0" />
-                  <span className="truncate">
-                    {convo.title || (convo.messages.length > 0 ? convo.messages[0].text : 'Nouvelle discussion')}
-                  </span>
-                </div>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDeleteConversation(convo.id);
-                  }}
-                  className="p-1 rounded-md text-gray-500 hover:text-red-500 hover:bg-gray-300 dark:hover:bg-gray-600 opacity-0 group-hover:opacity-100 transition-opacity"
-                  aria-label="Supprimer la conversation"
-                >
-                  <Trash2 size={14} />
-                </button>
-              </button>
-            </li>
-          ))}
-        </ul>
-      </div>
-      <div className="border-t border-gray-200 dark:border-gray-700 p-2 mt-auto">
-        <div className="flex items-center justify-between gap-2 p-1">
-          <div className="flex items-center gap-2 overflow-hidden">
-            {user.user_metadata.avatar_url && (
-                <img 
-                    src={user.user_metadata.avatar_url} 
-                    alt="User avatar" 
-                    className="w-7 h-7 rounded-full"
-                />
-            )}
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate" title={user.email}>
-                {user.user_metadata.full_name || user.email}
-            </span>
-          </div>
-          <button 
-              onClick={handleLogout} 
-              className="p-2 text-gray-500 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-red-500 dark:hover:text-red-400"
-              aria-label="Déconnexion"
-              title="Déconnexion"
-          >
-              <LogOut size={18} />
-          </button>
-        </div>
-      </div>
-    </div>
+                }`,
+                children: [
+                  jsxs("div", { className: "flex items-center gap-2 overflow-hidden", children: [
+                    jsx(MessageSquare, { size: 16, className: "flex-shrink-0" }),
+                    jsx("span", { className: "truncate", children: 
+                      convo.title || (convo.messages.length > 0 ? convo.messages[0].text : 'Nouvelle discussion')
+                    })
+                  ]}),
+                  jsx("button", {
+                    onClick: (e) => {
+                      e.stopPropagation();
+                      onDeleteConversation(convo.id);
+                    },
+                    className: "p-1 rounded-md text-gray-500 hover:text-red-500 hover:bg-gray-300 dark:hover:bg-gray-600 opacity-0 group-hover:opacity-100 transition-opacity",
+                    "aria-label": "Supprimer la conversation",
+                    children: jsx(Trash2, { size: 14 })
+                  })
+                ]
+              })
+            }, convo.id)
+          ))
+        ]})
+      }),
+      jsx("div", { className: "border-t border-gray-200 dark:border-gray-700 p-2 mt-auto", children: 
+        jsx("div", { className: "flex items-center justify-between gap-2 p-1", children: 
+          jsxs("div", { className: "flex items-center gap-2 overflow-hidden", children: [
+            user.user_metadata.avatar_url && (
+                jsx("img", {
+                    src: user.user_metadata.avatar_url,
+                    alt: "User avatar",
+                    className: "w-7 h-7 rounded-full"
+                })
+            ),
+            jsx("span", { className: "text-sm font-medium text-gray-700 dark:text-gray-300 truncate", title: user.email, children: 
+                user.user_metadata.full_name || user.email
+            })
+          ]}),
+          jsx("button", {
+              onClick: handleLogout,
+              className: "p-2 text-gray-500 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-red-500 dark:hover:text-red-400",
+              "aria-label": "Déconnexion",
+              title: "Déconnexion",
+              children: jsx(LogOut, { size: 18 })
+          })
+        })
+      })
+    ]})
   );
 };
 
 // --- From components/LoginScreen.tsx ---
-const LoginScreen: React.FC = () => {
+const LoginScreen = () => {
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
-  const [view, setView] = useState<'signIn' | 'signUp' | 'checkEmail' | 'forgotPassword' | 'checkEmailForReset'>('signIn');
+  const [view, setView] = useState('signIn');
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
@@ -853,7 +788,7 @@ const LoginScreen: React.FC = () => {
         if (resetError) throw resetError;
         setView('checkEmailForReset');
       }
-    } catch (err: any) {
+    } catch (err) {
       setError(err.error_description || err.message);
     } finally {
       setLoading(false);
@@ -862,40 +797,41 @@ const LoginScreen: React.FC = () => {
 
   if (view === 'checkEmail') {
     return (
-      <div className="flex flex-col items-center justify-center h-screen w-screen bg-gray-50 dark:bg-gray-800 p-4">
-        <div className="text-center p-8 max-w-md w-full bg-white dark:bg-gray-900 shadow-xl rounded-lg">
-           <Mail size={48} className="mx-auto text-blue-600 mb-4" />
-           <h1 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">
-            Vérifiez vos e-mails
-          </h1>
-          <p className="text-gray-600 dark:text-gray-300">
-            Un lien de confirmation a été envoyé à <strong>{email}</strong>. Veuillez cliquer sur ce lien pour finaliser votre inscription.
-          </p>
-        </div>
-      </div>
+      jsx("div", { className: "flex flex-col items-center justify-center h-screen w-screen bg-gray-50 dark:bg-gray-800 p-4", children: 
+        jsxs("div", { className: "text-center p-8 max-w-md w-full bg-white dark:bg-gray-900 shadow-xl rounded-lg", children: [
+           jsx(Mail, { size: 48, className: "mx-auto text-blue-600 mb-4" }),
+           jsx("h1", { className: "text-2xl font-bold text-gray-800 dark:text-white mb-4", children: "Vérifiez vos e-mails" }),
+          jsxs("p", { className: "text-gray-600 dark:text-gray-300", children: [
+            "Un lien de confirmation a été envoyé à ",
+            jsx("strong", { children: email }),
+            ". Veuillez cliquer sur ce lien pour finaliser votre inscription."
+          ]})
+        ]})
+      })
     );
   }
   
   if (view === 'checkEmailForReset') {
     return (
-      <div className="flex flex-col items-center justify-center h-screen w-screen bg-gray-50 dark:bg-gray-800 p-4">
-        <div className="text-center p-8 max-w-md w-full bg-white dark:bg-gray-900 shadow-xl rounded-lg">
-           <Mail size={48} className="mx-auto text-blue-600 mb-4" />
-           <h1 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">
-            Vérifiez vos e-mails
-          </h1>
-          <p className="text-gray-600 dark:text-gray-300">
-            Si un compte existe pour <strong>{email}</strong>, un lien de réinitialisation de mot de passe a été envoyé.
-          </p>
-           <button
-              onClick={() => setView('signIn')}
-              className="font-medium text-blue-600 hover:underline mt-4 inline-flex items-center gap-1"
-            >
-              <ArrowLeft size={16} />
-              Retour à la connexion
-            </button>
-        </div>
-      </div>
+      jsx("div", { className: "flex flex-col items-center justify-center h-screen w-screen bg-gray-50 dark:bg-gray-800 p-4", children: 
+        jsxs("div", { className: "text-center p-8 max-w-md w-full bg-white dark:bg-gray-900 shadow-xl rounded-lg", children: [
+           jsx(Mail, { size: 48, className: "mx-auto text-blue-600 mb-4" }),
+           jsx("h1", { className: "text-2xl font-bold text-gray-800 dark:text-white mb-4", children: "Vérifiez vos e-mails" }),
+          jsxs("p", { className: "text-gray-600 dark:text-gray-300", children: [
+            "Si un compte existe pour ",
+            jsx("strong", { children: email }),
+            ", un lien de réinitialisation de mot de passe a été envoyé."
+          ]}),
+           jsxs("button", {
+              onClick: () => setView('signIn'),
+              className: "font-medium text-blue-600 hover:underline mt-4 inline-flex items-center gap-1",
+              children: [
+                jsx(ArrowLeft, { size: 16 }),
+                "Retour à la connexion"
+              ]
+            })
+        ]})
+      })
     );
   }
 
@@ -920,118 +856,104 @@ const LoginScreen: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center h-screen w-screen bg-gray-50 dark:bg-gray-800 p-4">
-      <div className="max-w-md w-full bg-white dark:bg-gray-900 shadow-xl rounded-lg p-8 space-y-6">
-        <div className="text-center">
-            <Bot size={48} className="mx-auto text-blue-600 mb-4" />
-            <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">
-              {getTitle()}
-            </h1>
-            <p className="text-gray-600 dark:text-gray-300">
-              {getSubtitle()}
-            </p>
-        </div>
-        
-        <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-                <label htmlFor="email" className="text-sm font-medium text-gray-700 dark:text-gray-300 sr-only">Email</label>
-                <input
-                  id="email"
-                  type="email"
-                  placeholder="Adresse e-mail"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-800"
-                />
-            </div>
-             {view === 'signUp' && (
-                <div>
-                    <label htmlFor="fullName" className="text-sm font-medium text-gray-700 dark:text-gray-300 sr-only">Nom complet</label>
-                    <input
-                      id="fullName"
-                      type="text"
-                      placeholder="Nom complet"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-800"
-                    />
-                </div>
-            )}
-            { (view === 'signIn' || view === 'signUp') && (
-              <div>
-                  <label htmlFor="password"className="text-sm font-medium text-gray-700 dark:text-gray-300 sr-only">Mot de passe</label>
-                  <input
-                    id="password"
-                    type="password"
-                    placeholder="Mot de passe"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-800"
-                  />
-              </div>
-            )}
-            { view === 'signIn' && (
-              <div className="text-right">
-                <button 
-                  type="button" 
-                  onClick={() => { setView('forgotPassword'); setError(null); }} 
-                  className="text-sm font-medium text-blue-600 hover:underline"
-                >
-                  Mot de passe oublié ?
-                </button>
-              </div>
-            )}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-            >
-              {loading ? 'Chargement...' : (view === 'signIn' ? 'Se connecter' : (view === 'signUp' ? 'S\'inscrire' : 'Envoyer le lien'))}
-            </button>
-        </form>
-
-        <p className="text-center text-sm text-gray-600 dark:text-gray-400">
-            {view === 'signIn' ? 'Pas encore de compte ?' : (view === 'signUp' ? 'Vous avez déjà un compte ?' : '')}
-            { view !== 'forgotPassword' ? (
-              <button
-                onClick={() => {
+    jsx("div", { className: "flex flex-col items-center justify-center h-screen w-screen bg-gray-50 dark:bg-gray-800 p-4", children: 
+      jsxs("div", { className: "max-w-md w-full bg-white dark:bg-gray-900 shadow-xl rounded-lg p-8 space-y-6", children: [
+        jsxs("div", { className: "text-center", children: [
+            jsx(Bot, { size: 48, className: "mx-auto text-blue-600 mb-4" }),
+            jsx("h1", { className: "text-3xl font-bold text-gray-800 dark:text-white mb-2", children: getTitle() }),
+            jsx("p", { className: "text-gray-600 dark:text-gray-300", children: getSubtitle() })
+        ]}),
+        jsxs("form", { onSubmit: handleSubmit, className: "space-y-4", children: [
+            jsx("div", { children: 
+                jsx("input", {
+                  id: "email",
+                  type: "email",
+                  placeholder: "Adresse e-mail",
+                  value: email,
+                  onChange: (e) => setEmail(e.target.value),
+                  required: true,
+                  className: "w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-800"
+                })
+            }),
+             view === 'signUp' && (
+                jsx("div", { children: 
+                    jsx("input", {
+                      id: "fullName",
+                      type: "text",
+                      placeholder: "Nom complet",
+                      value: fullName,
+                      onChange: (e) => setFullName(e.target.value),
+                      required: true,
+                      className: "w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-800"
+                    })
+                })
+            ),
+            (view === 'signIn' || view === 'signUp') && (
+              jsx("div", { children: 
+                  jsx("input", {
+                    id: "password",
+                    type: "password",
+                    placeholder: "Mot de passe",
+                    value: password,
+                    onChange: (e) => setPassword(e.target.value),
+                    required: true,
+                    className: "w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-800"
+                  })
+              })
+            ),
+            view === 'signIn' && (
+              jsx("div", { className: "text-right", children: 
+                jsx("button", {
+                  type: "button",
+                  onClick: () => { setView('forgotPassword'); setError(null); },
+                  className: "text-sm font-medium text-blue-600 hover:underline",
+                  children: "Mot de passe oublié ?"
+                })
+              })
+            ),
+            jsx("button", {
+              type: "submit",
+              disabled: loading,
+              className: "w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50",
+              children: loading ? 'Chargement...' : (view === 'signIn' ? 'Se connecter' : (view === 'signUp' ? 'S\'inscrire' : 'Envoyer le lien'))
+            })
+        ]}),
+        jsxs("p", { className: "text-center text-sm text-gray-600 dark:text-gray-400", children: [
+            view === 'signIn' ? 'Pas encore de compte ?' : (view === 'signUp' ? 'Vous avez déjà un compte ?' : ''),
+            view !== 'forgotPassword' ? (
+              jsx("button", {
+                onClick: () => {
                   setView(view === 'signIn' ? 'signUp' : 'signIn');
                   setError(null);
-                }}
-                className="font-medium text-blue-600 hover:underline ml-1"
-              >
-                {view === 'signIn' ? 'Inscrivez-vous' : 'Connectez-vous'}
-              </button>
+                },
+                className: "font-medium text-blue-600 hover:underline ml-1",
+                children: view === 'signIn' ? 'Inscrivez-vous' : 'Connectez-vous'
+              })
             ) : (
-               <button
-                  onClick={() => { setView('signIn'); setError(null); }}
-                  className="font-medium text-blue-600 hover:underline ml-1"
-                >
-                  Retour à la connexion
-                </button>
-            )}
-        </p>
-
-        {error && <p className="text-red-500 text-sm mt-4 p-3 bg-red-100 dark:bg-red-900/20 rounded-md text-center">{error}</p>}
-      </div>
-    </div>
+               jsx("button", {
+                  onClick: () => { setView('signIn'); setError(null); },
+                  className: "font-medium text-blue-600 hover:underline ml-1",
+                  children: "Retour à la connexion"
+                })
+            )
+        ]}),
+        error && jsx("p", { className: "text-red-500 text-sm mt-4 p-3 bg-red-100 dark:bg-red-900/20 rounded-md text-center", children: error })
+      ]})
+    })
   );
 };
 
 // =================================================================================
 // --- From App.tsx ---
 // =================================================================================
-const App: React.FC = () => {
-  const [session, setSession] = useState<Session | null>(null);
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
+const App = () => {
+  const [session, setSession] = useState(null);
+  const [conversations, setConversations] = useState([]);
+  const [activeConversationId, setActiveConversationId] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const chatEndRef = useRef<HTMLDivElement>(null);
+  const chatEndRef = useRef(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -1055,7 +977,7 @@ const App: React.FC = () => {
       const key = `dr-samy-conversations-${session.user.id}`;
       const storedConversations = localStorage.getItem(key);
       if (storedConversations) {
-        const parsedConversations: Conversation[] = JSON.parse(storedConversations);
+        const parsedConversations = JSON.parse(storedConversations);
         setConversations(parsedConversations);
         if (parsedConversations.length > 0) {
           setActiveConversationId(parsedConversations[0].id);
@@ -1089,7 +1011,7 @@ const App: React.FC = () => {
     scrollToBottom();
   }, [activeConversationId, isLoading, conversations]);
 
-  const handleSendMessage = async (prompt: string, images: File[]) => {
+  const handleSendMessage = async (prompt, images) => {
     if (!prompt.trim() && images.length === 0) return;
     let currentConvId = activeConversationId;
     let isFirstMessage = false;
@@ -1100,25 +1022,26 @@ const App: React.FC = () => {
     }
     setIsLoading(true);
     setError(null);
-    const imageFiles: ImageFile[] = await Promise.all(
+    const imageFiles = await Promise.all(
       images.map(async (file) => {
-        const base64 = await new Promise<string>((resolve, reject) => {
+        const base64 = await new Promise((resolve, reject) => {
           const reader = new FileReader();
           reader.readAsDataURL(file);
+          // FIX: Cast reader.result to string. `readAsDataURL` returns a string, but the type is `string | ArrayBuffer | null`.
           reader.onload = () => resolve((reader.result as string).split(',')[1]);
           reader.onerror = (error) => reject(error);
         });
         return { name: file.name, base64, type: file.type };
       })
     );
-    const userMessage: Message = {
+    const userMessage = {
       id: Date.now().toString(),
       role: 'user',
       text: prompt,
       images: imageFiles.length > 0 ? imageFiles : undefined,
     };
     
-    let updatedMessages: Message[] = [];
+    let updatedMessages = [];
     setConversations(prevConvs => 
         prevConvs.map(conv => {
             if (conv.id === currentConvId) {
@@ -1131,7 +1054,7 @@ const App: React.FC = () => {
     
     try {
       const responseText = await getDrSamyResponse(prompt, imageFiles, updatedMessages);
-      const botMessage: Message = {
+      const botMessage = {
         id: (Date.now() + 1).toString(),
         role: 'model',
         text: responseText,
@@ -1149,7 +1072,7 @@ const App: React.FC = () => {
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
       setError(`Error: Could not get a response. ${errorMessage}`);
-      const errorBotMessage: Message = {
+      const errorBotMessage = {
         id: (Date.now() + 1).toString(),
         role: 'model',
         text: `Désolé, une erreur est survenue. Veuillez réessayer. (${errorMessage})`,
@@ -1168,7 +1091,7 @@ const App: React.FC = () => {
   const startNewChat = () => {
     setError(null);
     setIsSidebarOpen(false); 
-    const newConversation: Conversation = {
+    const newConversation = {
         id: Date.now().toString(),
         messages: [],
         title: 'Nouvelle Consultation',
@@ -1179,12 +1102,12 @@ const App: React.FC = () => {
     return newConversation;
   };
 
-  const selectConversation = (id: string) => {
+  const selectConversation = (id) => {
     setActiveConversationId(id);
     setIsSidebarOpen(false);
   };
 
-  const deleteConversation = (id: string) => {
+  const deleteConversation = (id) => {
     const remainingConversations = conversations.filter(c => c.id !== id);
     setConversations(remainingConversations);
     if (activeConversationId === id) {
@@ -1200,54 +1123,54 @@ const App: React.FC = () => {
   const messages = activeConversation ? activeConversation.messages : [];
   
   if (!session) {
-    return <LoginScreen />;
+    return jsx(LoginScreen, {});
   }
   
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-sans">
-      {isSidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden"
-          onClick={() => setIsSidebarOpen(false)}
-          aria-hidden="true"
-        ></div>
-      )}
-      <Sidebar 
-        conversations={conversations}
-        activeConversationId={activeConversationId}
-        onNewChat={startNewChat}
-        onSelectConversation={selectConversation}
-        onDeleteConversation={deleteConversation}
-        isOpen={isSidebarOpen}
-        onClose={() => setIsSidebarOpen(false)}
-        user={session.user}
-      />
-      <div className="flex flex-col flex-1">
-        <Header onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
-        <main className="flex-1 overflow-y-auto p-4 md:p-6">
-          <div className="max-w-4xl mx-auto">
-            {messages.length === 0 && !isLoading ? (
-              <WelcomeScreen />
+    jsxs("div", { className: "flex h-screen bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-sans", children: [
+      isSidebarOpen && (
+        jsx("div", {
+          className: "fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden",
+          onClick: () => setIsSidebarOpen(false),
+          "aria-hidden": "true"
+        })
+      ),
+      jsx(Sidebar, {
+        conversations: conversations,
+        activeConversationId: activeConversationId,
+        onNewChat: startNewChat,
+        onSelectConversation: selectConversation,
+        onDeleteConversation: deleteConversation,
+        isOpen: isSidebarOpen,
+        onClose: () => setIsSidebarOpen(false),
+        user: session.user
+      }),
+      jsxs("div", { className: "flex flex-col flex-1", children: [
+        jsx(Header, { onToggleSidebar: () => setIsSidebarOpen(!isSidebarOpen) }),
+        jsx("main", { className: "flex-1 overflow-y-auto p-4 md:p-6", children: 
+          jsx("div", { className: "max-w-4xl mx-auto", children: [
+            messages.length === 0 && !isLoading ? (
+              jsx(WelcomeScreen, {})
             ) : (
-              <div className="space-y-6">
-                {messages.map((msg) => (
-                  <ChatMessage key={msg.id} message={msg} />
-                ))}
-                <div ref={chatEndRef} />
-              </div>
-            )}
-            {isLoading && <LoadingIndicator />}
-            {error && <div className="text-red-500 text-center p-4">{error}</div>}
-          </div>
-        </main>
-        <footer className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 p-4 md:p-6">
-          <div className="max-w-4xl mx-auto">
-            <ChatInput onSendMessage={handleSendMessage} isLoading={isLoading} />
-            <Disclaimer />
-          </div>
-        </footer>
-      </div>
-    </div>
+              jsxs("div", { className: "space-y-6", children: [
+                messages.map((msg) => (
+                  jsx(ChatMessage, { message: msg }, msg.id)
+                )),
+                jsx("div", { ref: chatEndRef })
+              ]})
+            ),
+            isLoading && jsx(LoadingIndicator, {}),
+            error && jsx("div", { className: "text-red-500 text-center p-4", children: error })
+          ]})
+        }),
+        jsx("footer", { className: "bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 p-4 md:p-6", children: 
+          jsx("div", { className: "max-w-4xl mx-auto", children: [
+            jsx(ChatInput, { onSendMessage: handleSendMessage, isLoading: isLoading }),
+            jsx(Disclaimer, {})
+          ]})
+        })
+      ]})
+    ]})
   );
 };
 
@@ -1262,7 +1185,7 @@ if (!rootElement) {
 
 const root = ReactDOM.createRoot(rootElement);
 root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
+  jsx(React.StrictMode, {
+    children: jsx(App, {})
+  })
 );
