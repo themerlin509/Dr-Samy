@@ -1,5 +1,5 @@
 {
-  "name": "Dr Samy",
+  "name": "Dr Samy  IA",
   "description": "Dr Samy is an intelligent medical pre-diagnosis assistant powered by Google's Gemini API. It offers a preliminary evaluation of symptoms through a multimodal interface (text, audio, and image) to provide personalized recommendations and identify potential emergencies.",
   "requestFramePermissions": [
     "camera",
