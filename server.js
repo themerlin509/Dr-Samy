@@ -17,12 +17,12 @@ try {
   process.exit(1);
 }
 
-const apiKey = process.env.API_KEY || '';
+const apiKey = process.env.API_KEY || process.env.GEMINI_API_KEY || '';
 const supabaseUrl = process.env.SUPABASE_URL || '';
 const supabaseKey = process.env.SUPABASE_KEY || '';
 
 if (!apiKey || !supabaseUrl || !supabaseKey) {
-    console.warn("WARNING: One or more environment variables (API_KEY, SUPABASE_URL, SUPABASE_KEY) are not set. The application may not function correctly.");
+    console.warn("WARNING: One or more environment variables (API_KEY/GEMINI_API_KEY, SUPABASE_URL, SUPABASE_KEY) are not set. The application may not function correctly.");
 }
 
 const injectionScript = `<script>
