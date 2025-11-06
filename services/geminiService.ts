@@ -2,10 +2,12 @@ import { GoogleGenAI, HarmCategory, HarmBlockThreshold, Part, GenerateContentRes
 import { DR_SAMY_SYSTEM_PROMPT } from '../constants';
 import type { ImageFile, Message } from '../types';
 
-const API_KEY = process.env.API_KEY;
+// FIX: Per Vite guidelines, client-side environment variables must be accessed via `import.meta.env` and be prefixed with `VITE_`.
+const API_KEY = (import.meta as any).env.VITE_GEMINI_API_KEY;
 
 if (!API_KEY) {
-  throw new Error("API_KEY environment variable is not set.");
+  // FIX: Updated error message to correspond with the correct environment variable.
+  throw new Error("VITE_GEMINI_API_KEY environment variable is not set. Please check your .env.local file and Vercel configuration.");
 }
 
 const ai = new GoogleGenAI({ apiKey: API_KEY });
