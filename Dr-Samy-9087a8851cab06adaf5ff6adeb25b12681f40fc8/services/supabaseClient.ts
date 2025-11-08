@@ -1,26 +1,10 @@
-
-// Fix: Removed the triple-slash directive as it was causing "Cannot find type definition file for 'vite/client'" error.
-// Instead, explicitly declare the necessary global types for `import.meta.env`.
-declare global {
-  interface ImportMetaEnv {
-    readonly VITE_SUPABASE_URL: string;
-    readonly VITE_SUPABASE_KEY: string;
-  }
-
-  interface ImportMeta {
-    readonly env: ImportMetaEnv;
-  }
-}
-
 import { createClient } from '@supabase/supabase-js'
 
-// Using Vite's import.meta.env for client-side variables.
-// These variables are replaced at build time with the values from your .env file or Vercel settings.
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseKey = import.meta.env.VITE_SUPABASE_KEY;
+const supabaseUrl = 'https://dqpzhpcglfbydcwgqdsu.supabase.co'
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRxcHpocGNnbGZieWRjd2dxZHN1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE4Njc3MTksImV4cCI6MjA3NzQ0MzcxOX0.XMH8J8QzayRL48TCThYBtPweeDPSOw_IuFWxPJfrK9g';
 
 if (!supabaseUrl || !supabaseKey) {
-    throw new Error("Supabase environment variables (VITE_SUPABASE_URL, VITE_SUPABASE_KEY) are not defined. Please check your .env.local file and Vercel project settings.");
+    throw new Error("Supabase URL or Key is not defined.");
 }
 
 /**

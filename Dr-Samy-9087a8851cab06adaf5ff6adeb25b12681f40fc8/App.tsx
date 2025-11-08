@@ -208,10 +208,10 @@ const App: React.FC = () => {
   }
   
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-sans">
+    <div className="app-container">
       {isSidebarOpen && (
         <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden"
+          className="sidebar-overlay"
           onClick={() => setIsSidebarOpen(false)}
           aria-hidden="true"
         ></div>
@@ -226,14 +226,14 @@ const App: React.FC = () => {
         onClose={() => setIsSidebarOpen(false)}
         user={session.user}
       />
-      <div className="flex flex-col flex-1">
+      <div className="main-content">
         <Header onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
-        <main className="flex-1 overflow-y-auto p-4 md:p-6">
-          <div className="max-w-4xl mx-auto">
+        <main className="chat-window">
+          <div className="chat-content">
             {messages.length === 0 && !isLoading ? (
               <WelcomeScreen />
             ) : (
-              <div className="space-y-6">
+              <div className="messages-list">
                 {messages.map((msg) => (
                   <ChatMessage key={msg.id} message={msg} />
                 ))}
@@ -241,11 +241,11 @@ const App: React.FC = () => {
               </div>
             )}
             {isLoading && <LoadingIndicator />}
-            {error && <div className="text-red-500 text-center p-4">{error}</div>}
+            {error && <div className="error-message">{error}</div>}
           </div>
         </main>
-        <footer className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 p-4 md:p-6">
-          <div className="max-w-4xl mx-auto">
+        <footer className="footer">
+          <div className="footer-content">
             <ChatInput onSendMessage={handleSendMessage} isLoading={isLoading} />
             <Disclaimer />
           </div>

@@ -1,62 +1,59 @@
-# Guide de Configuration des Variables d'Environnement pour Vercel
+# Guide de Déploiement et Configuration pour Vercel
 
-Ce guide vous explique comment configurer correctement votre application "Dr Samy" pour qu'elle fonctionne en production sur Vercel. Le problème principal que vous rencontrez (page blanche, erreurs de clé API) est dû à une mauvaise configuration des variables d'environnement.
+Ce guide vous explique comment configurer et déployer correctement votre application "Dr Samy" sur Vercel. Les étapes ci-dessous résolvent les problèmes de page blanche et d'erreurs d'API en mettant en place une architecture sécurisée et robuste.
 
-## Contexte
+## Architecture et Sécurité des Clés API
 
-Votre application a besoin de clés secrètes (clés API) pour communiquer avec les services externes comme Google Gemini et Supabase.
+Pour des raisons de sécurité, les clés API "secrètes" (comme celle de Gemini) ne doivent **jamais** être exposées dans le code côté client (navigateur). Pour cette raison, l'application a été restructurée :
 
-- **En local (`npm run dev`)**: Ces clés sont lues depuis un fichier `.env.local` à la racine de votre projet.
-- **En production (sur Vercel)**: Vous ne devez jamais mettre vos clés secrètes dans le code. À la place, vous devez les configurer directement dans les paramètres de votre projet sur le site de Vercel.
+1.  **Appels Gemini (côté serveur)** : Un proxy sécurisé (une fonction "serverless") a été créé dans le dossier `/api`. C'est cette fonction, qui s'exécute sur les serveurs de Vercel, qui détient la clé secrète `API_KEY` et communique avec Google Gemini. Votre application n'expose jamais cette clé.
+2.  **Configuration Supabase (côté client)** : Les clés pour Supabase (`VITE_SUPABASE_URL` et `VITE_SUPABASE_KEY`) sont publiques et peuvent être chargées en toute sécurité dans l'application. Le préfixe `VITE_` est une convention de l'outil de build (Vite) pour les rendre accessibles.
 
-Le processus de build (compilation) de votre application prendra ces clés depuis Vercel et les injectera de manière sécurisée dans le code final qui sera servi à vos utilisateurs.
+## Variables d'Environnement à Configurer
 
-**Important :** Suite aux récentes corrections, toutes les variables d'environnement doivent maintenant être préfixées par `VITE_`. C'est la manière standard et sécurisée de les gérer avec l'outil de build Vite.
+Vous devrez configurer les trois variables suivantes dans les paramètres de votre projet Vercel :
+
+| Nom de la Variable      | Description                                       | Type     |
+| ----------------------- | ------------------------------------------------- | -------- |
+| `API_KEY`               | Votre clé API secrète pour Google Gemini.         | Secrète  |
+| `VITE_SUPABASE_URL`     | L'URL de votre projet Supabase.                   | Publique |
+| `VITE_SUPABASE_KEY`     | Votre clé publique "anon" de Supabase.            | Publique |
 
 ## Étapes de Configuration sur Vercel
 
 Suivez ces étapes à la lettre pour que votre déploiement réussisse.
 
-### Étape 1 : Récupérer vos clés API
+### Étape 1 : Ajouter les variables à Vercel
 
-Assurez-vous d'avoir les 3 clés suivantes :
-
-1.  Votre clé API pour Google Gemini.
-2.  L'URL de votre projet Supabase.
-3.  La clé `anon public` de votre projet Supabase.
-
-Vous pouvez trouver les clés Supabase dans votre tableau de bord Supabase, sous "Project Settings" > "API".
-
-### Étape 2 : Ajouter les variables à Vercel
-
-1.  Connectez-vous à votre compte Vercel.
-2.  Naviguez jusqu'à votre projet "Dr Samy".
-3.  Allez dans l'onglet **Settings**.
-4.  Dans le menu de gauche, cliquez sur **Environment Variables**.
-
-5.  Ajoutez les trois variables suivantes, une par une. **Faites bien attention au préfixe `VITE_`!**
-
-    | Name                  | Value                               |
-    | --------------------- | ----------------------------------- |
-    | `VITE_GEMINI_API_KEY` | `collez_votre_clé_gemini_ici`         |
-    | `VITE_SUPABASE_URL`   | `collez_votre_url_supabase_ici`       |
-    | `VITE_SUPABASE_KEY`   | `collez_votre_clé_publique_supabase_ici` |
-
-    Pour chaque variable :
-    - Entrez le nom (ex: `VITE_GEMINI_API_KEY`).
+1.  Connectez-vous à votre compte Vercel et naviguez jusqu'à votre projet.
+2.  Allez dans l'onglet **Settings**.
+3.  Dans le menu de gauche, cliquez sur **Environment Variables**.
+4.  Ajoutez les trois variables listées dans le tableau ci-dessus, une par une.
+    - Entrez le nom (ex: `API_KEY`).
     - Collez la valeur correspondante.
-    - Assurez-vous que les environnements (Production, Preview, Development) sont bien cochés.
+    - Assurez-vous que tous les environnements (Production, Preview, Development) sont cochés.
     - Cliquez sur **Save**.
 
     ![Exemple de configuration sur Vercel](https://vercel.com/docs/storage/vercel-kv/kv-environment-variables.png)
 
-### Étape 3 : Redéployer votre application
+### Étape 2 : Vérifier les Paramètres de Build
 
-Une fois les variables d'environnement sauvegardées, vous devez déclencher un nouveau déploiement pour que Vercel prenne en compte ces changements.
+Vercel détecte généralement la configuration automatiquement, mais il est bon de vérifier :
+
+1.  Toujours dans **Settings**, allez dans **General**.
+2.  Assurez-vous que les "Build & Development Settings" sont configurés comme suit :
+    - **Framework Preset**: `Vite`
+    - **Build Command**: `npm run build` ou `vite build`
+    - **Output Directory**: `dist`
+    - **Install Command**: `npm install`
+
+### Étape 3 : Redéployer l'Application
+
+Une fois les variables sauvegardées et les paramètres vérifiés, vous devez déclencher un nouveau déploiement.
 
 1.  Allez dans l'onglet **Deployments** de votre projet Vercel.
 2.  Cliquez sur le menu "..." à côté de votre dernier déploiement et sélectionnez **Redeploy**.
-3.  Décochez l'option "Use existing Build Cache" pour être sûr que Vercel refasse une compilation complète avec les nouvelles variables.
+3.  **Important** : Décochez l'option "Use existing Build Cache" pour forcer Vercel à utiliser les nouvelles variables d'environnement.
 4.  Cliquez sur **Redeploy**.
 
-Attendez la fin du déploiement. Votre application devrait maintenant être fonctionnelle et ne plus afficher de page blanche.
+Après quelques minutes, votre déploiement sera terminé. Votre application devrait maintenant être parfaitement fonctionnelle, sécurisée et accessible à l'URL fournie par Vercel.

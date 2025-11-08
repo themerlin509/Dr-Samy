@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Paperclip, Mic, Send, X } from 'lucide-react';
 import type { ImageFile } from '../types';
@@ -112,19 +111,19 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading }
   };
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="chat-input-container">
        {images.length > 0 && (
-        <div className="flex flex-wrap gap-2 p-2 border-b border-gray-200 dark:border-gray-700">
+        <div className="image-previews">
           {images.map((file, index) => (
-            <div key={index} className="relative group">
+            <div key={index} className="image-preview-item">
               <img
                 src={URL.createObjectURL(file)}
                 alt={file.name}
-                className="w-16 h-16 rounded-md object-cover"
+                className="image-preview-img"
               />
               <button
                 onClick={() => removeImage(index)}
-                className="absolute -top-1 -right-1 bg-gray-700 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                className="remove-image-button"
                 aria-label={`Supprimer l'image ${file.name}`}
               >
                 <X size={14} />
@@ -133,10 +132,10 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading }
           ))}
         </div>
       )}
-      <div className="flex items-center gap-2">
+      <div className="input-bar">
         <button
           onClick={() => fileInputRef.current?.click()}
-          className="p-2 text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 disabled:opacity-50"
+          className="input-button"
           disabled={isLoading || images.length >= 5}
           aria-label="Joindre des fichiers"
         >
@@ -147,12 +146,12 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading }
             onChange={handleFileChange}
             multiple
             accept="image/*"
-            className="hidden"
+            className="hidden-file-input"
           />
         </button>
         <button 
           onClick={toggleRecording}
-          className={`p-2 disabled:opacity-50 ${isRecording ? 'text-red-500 animate-pulse' : 'text-gray-500 hover:text-blue-600 dark:hover:text-blue-400'}`}
+          className={`input-button ${isRecording ? 'recording' : ''}`}
           disabled={isLoading || !isSpeechApiSupported}
           aria-label={isRecording ? "Arrêter l'enregistrement" : "Commencer l'enregistrement"}
           title={!isSpeechApiSupported ? "La reconnaissance vocale n'est pas supportée par ce navigateur" : (isRecording ? "Arrêter l'enregistrement" : "Commencer l'enregistrement")}
@@ -164,23 +163,22 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading }
           onChange={(e) => setPrompt(e.target.value)}
           onKeyPress={handleKeyPress}
           placeholder={isRecording ? "Enregistrement en cours... Parlez maintenant." : "Décrivez vos symptômes ici..."}
-          className="flex-1 p-2 bg-gray-100 dark:bg-gray-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+          className="prompt-textarea"
           rows={1}
-          style={{ maxHeight: '100px' }}
           disabled={isLoading}
           aria-label="Zone de saisie des symptômes"
         />
         <button
           onClick={handleSend}
           disabled={isLoading || (!prompt.trim() && images.length === 0)}
-          className="p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed"
+          className="send-button"
           aria-label="Envoyer le message"
         >
           <Send size={20} />
         </button>
       </div>
       {!isSpeechApiSupported && (
-        <p className="text-xs text-red-500 text-center mt-1">La reconnaissance vocale n'est pas supportée par votre navigateur.</p>
+        <p className="speech-support-error">La reconnaissance vocale n'est pas supportée par votre navigateur.</p>
       )}
     </div>
   );

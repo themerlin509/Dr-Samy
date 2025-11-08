@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Menu } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
@@ -9,16 +8,16 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
   return (
-    <header className="flex items-center justify-between p-4 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 shadow-sm">
-      <div className="flex items-center gap-3">
+    <header className="header">
+      <div className="header-left">
         <button 
           onClick={onToggleSidebar} 
-          className="md:hidden p-2 -ml-2 text-gray-600 dark:text-gray-300"
+          className="menu-button"
           aria-label="Ouvrir le menu"
         >
           <Menu size={24} />
         </button>
-        <h1 className="text-xl font-bold text-gray-800 dark:text-white">
+        <h1 className="header-title">
           Dr Samy
         </h1>
       </div>

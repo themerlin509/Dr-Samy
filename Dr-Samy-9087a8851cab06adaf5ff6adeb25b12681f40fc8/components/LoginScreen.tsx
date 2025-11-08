@@ -50,13 +50,13 @@ export const LoginScreen: React.FC = () => {
 
   if (view === 'checkEmail') {
     return (
-      <div className="flex flex-col items-center justify-center h-screen w-screen bg-gray-50 dark:bg-gray-800 p-4">
-        <div className="text-center p-8 max-w-md w-full bg-white dark:bg-gray-900 shadow-xl rounded-lg">
-           <Mail size={48} className="mx-auto text-blue-600 mb-4" />
-           <h1 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">
+      <div className="login-container">
+        <div className="check-email-card">
+           <Mail size={48} className="login-icon" />
+           <h1 className="login-title">
             Vérifiez vos e-mails
           </h1>
-          <p className="text-gray-600 dark:text-gray-300">
+          <p className="login-subtitle">
             Un lien de confirmation a été envoyé à <strong>{email}</strong>. Veuillez cliquer sur ce lien pour finaliser votre inscription.
           </p>
         </div>
@@ -66,18 +66,18 @@ export const LoginScreen: React.FC = () => {
   
   if (view === 'checkEmailForReset') {
     return (
-      <div className="flex flex-col items-center justify-center h-screen w-screen bg-gray-50 dark:bg-gray-800 p-4">
-        <div className="text-center p-8 max-w-md w-full bg-white dark:bg-gray-900 shadow-xl rounded-lg">
-           <Mail size={48} className="mx-auto text-blue-600 mb-4" />
-           <h1 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">
+      <div className="login-container">
+        <div className="check-email-card">
+           <Mail size={48} className="login-icon" />
+           <h1 className="login-title">
             Vérifiez vos e-mails
           </h1>
-          <p className="text-gray-600 dark:text-gray-300">
+          <p className="login-subtitle">
             Si un compte existe pour <strong>{email}</strong>, un lien de réinitialisation de mot de passe a été envoyé.
           </p>
            <button
               onClick={() => setView('signIn')}
-              className="font-medium text-blue-600 hover:underline mt-4 inline-flex items-center gap-1"
+              className="check-email-back-link"
             >
               <ArrowLeft size={16} />
               Retour à la connexion
@@ -108,21 +108,21 @@ export const LoginScreen: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center h-screen w-screen bg-gray-50 dark:bg-gray-800 p-4">
-      <div className="max-w-md w-full bg-white dark:bg-gray-900 shadow-xl rounded-lg p-8 space-y-6">
-        <div className="text-center">
-            <Bot size={48} className="mx-auto text-blue-600 mb-4" />
-            <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">
+    <div className="login-container">
+      <div className="login-card">
+        <div className="login-header">
+            <Bot size={48} className="login-icon" />
+            <h1 className="login-title">
               {getTitle()}
             </h1>
-            <p className="text-gray-600 dark:text-gray-300">
+            <p className="login-subtitle">
               {getSubtitle()}
             </p>
         </div>
         
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="login-form">
             <div>
-                <label htmlFor="email" className="text-sm font-medium text-gray-700 dark:text-gray-300 sr-only">Email</label>
+                <label htmlFor="email" className="sr-only">Email</label>
                 <input
                   id="email"
                   type="email"
@@ -130,12 +130,12 @@ export const LoginScreen: React.FC = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-800"
+                  className="login-input"
                 />
             </div>
              {view === 'signUp' && (
                 <div>
-                    <label htmlFor="fullName" className="text-sm font-medium text-gray-700 dark:text-gray-300 sr-only">Nom complet</label>
+                    <label htmlFor="fullName" className="sr-only">Nom complet</label>
                     <input
                       id="fullName"
                       type="text"
@@ -143,13 +143,13 @@ export const LoginScreen: React.FC = () => {
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
                       required
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-800"
+                      className="login-input"
                     />
                 </div>
             )}
             { (view === 'signIn' || view === 'signUp') && (
               <div>
-                  <label htmlFor="password"className="text-sm font-medium text-gray-700 dark:text-gray-300 sr-only">Mot de passe</label>
+                  <label htmlFor="password" className="sr-only">Mot de passe</label>
                   <input
                     id="password"
                     type="password"
@@ -157,16 +157,16 @@ export const LoginScreen: React.FC = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-800"
+                    className="login-input"
                   />
               </div>
             )}
             { view === 'signIn' && (
-              <div className="text-right">
+              <div style={{textAlign: 'right'}}>
                 <button 
                   type="button" 
                   onClick={() => { setView('forgotPassword'); setError(null); }} 
-                  className="text-sm font-medium text-blue-600 hover:underline"
+                  className="forgot-password-link"
                 >
                   Mot de passe oublié ?
                 </button>
@@ -175,13 +175,13 @@ export const LoginScreen: React.FC = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+              className="login-button"
             >
               {loading ? 'Chargement...' : (view === 'signIn' ? 'Se connecter' : (view === 'signUp' ? 'S\'inscrire' : 'Envoyer le lien'))}
             </button>
         </form>
 
-        <p className="text-center text-sm text-gray-600 dark:text-gray-400">
+        <p className="login-footer-text">
             {view === 'signIn' ? 'Pas encore de compte ?' : (view === 'signUp' ? 'Vous avez déjà un compte ?' : '')}
             { view !== 'forgotPassword' ? (
               <button
@@ -189,21 +189,21 @@ export const LoginScreen: React.FC = () => {
                   setView(view === 'signIn' ? 'signUp' : 'signIn');
                   setError(null);
                 }}
-                className="font-medium text-blue-600 hover:underline ml-1"
+                className="login-footer-link"
               >
                 {view === 'signIn' ? 'Inscrivez-vous' : 'Connectez-vous'}
               </button>
             ) : (
                <button
                   onClick={() => { setView('signIn'); setError(null); }}
-                  className="font-medium text-blue-600 hover:underline ml-1"
+                  className="login-footer-link"
                 >
                   Retour à la connexion
                 </button>
             )}
         </p>
 
-        {error && <p className="text-red-500 text-sm mt-4 p-3 bg-red-100 dark:bg-red-900/20 rounded-md text-center">{error}</p>}
+        {error && <p className="login-error">{error}</p>}
       </div>
     </div>
   );
